@@ -1,100 +1,139 @@
 # Smart Exam Hall Monitoring and Management System
 
-An embedded systems project built on the **LPC2148 (ARM7)** microcontroller that automates examination timing, environmental monitoring, and status indication in an exam hall — reducing manual intervention and timing errors.
+An embedded systems project built on the **NXP LPC2148 (ARM7TDMI-S)** microcontroller that automates key aspects of exam-hall management — timing, room environment monitoring, and status alerts — using **Keil µVision** for firmware development and **Proteus ISIS** for circuit simulation.
 
-## Aim
+---
 
-To develop a Smart Exam Hall Monitoring System that automates examination timing, environmental monitoring, and status indication, thereby improving examination management efficiency.
+## 📋 Overview
 
-## Objectives
+This project simulates a self-contained exam-hall controller that:
+- Tracks exam time using a **Real-Time Clock (RTC)** and displays it on an LCD
+- Reads room **temperature** via an **LM35** sensor through the on-chip ADC
+- Accepts operator input (e.g. exam codes, start/stop commands) through a **4x4 matrix keypad**
+- Displays live status (time, temperature, exam state) on a **16x2/20x4 character LCD** and a **7-segment display**
+- Signals exam start/end and alerts via a **buzzer**
+- Indicates system/exam status using **status LEDs** (Green / Yellow / Red)
 
-- Display the current RTC time and room temperature on the LCD
-- Allow examination duration configuration using a keypad
-- Implement a countdown timer for examination management
-- Display remaining examination time using two multiplexed 7-segment displays
-- Provide Green, Yellow, and Red LED alerts based on remaining time
-- Enable RTC editing and exam configuration via External Interrupt 0
-- Implement Pause/Resume functionality via External Interrupt 1
-- Continuously monitor and display room temperature using an LM35 sensor
-- Automatically record examination start and end times using the RTC
-- Reduce manual timing errors and improve exam hall monitoring efficiency
+> **Note:** The Proteus simulation schematic uses the **LPC2124** device model as a stand-in for the **LPC2148**, since the LPC2148 is not natively available in the Proteus component library. Pin-out and peripheral behavior are equivalent for the features used in this project.
 
-## Block Diagram
+---
 
-```
-KEYPAD ────────┐
-SWITCH1 ─(EINT0)─┤                  ├──▶ LCD
-SWITCH2 ─(EINT1)─┤     LPC2148      ├──▶ SEGMENTS
-LM35 ────(ADC)───┤     + RTC        ├──▶ GREEN LED
-                 │                  ├──▶ YELLOW LED
-                 │                  ├──▶ RED LED
-                 └──────────────────┴──▶ BUZZER
-```
+## 🖥️ Circuit Diagram (Proteus ISIS)
 
-## Hardware Requirements
+![Circuit Diagram](assets/circuit_diagram.jpg)
 
-- LPC2148 development board
-- 16x2 LCD
-- 4x4 matrix keypad
-- Switches (x2)
-- Seven-segment displays (x2, multiplexed)
-- LM35 temperature sensor
-- LEDs (Green, Yellow, Red)
-- Buzzer
-- USB-UART converter / DB-9 cable
+**Key connections shown above:**
 
-## Software Requirements
+| Component | Function | Connected To |
+|---|---|---|
+| **U1 (LPC2124/LPC2148)** | Main microcontroller | Central controller for all peripherals |
+| **LCD2 (LM044L)** | Character LCD display | Port 0 pins (RS, RW, E, D0–D7) — shows time, temperature, exam status |
+| **Keypad (4x4 Matrix)** | User input | Rows A–D and Columns 1–4 mapped to Port 0/Port 1 GPIO pins |
+| **U2 (LM35)** | Temperature sensor | ADC input (AIN) for room temperature monitoring |
+| **7-Segment Display** | Numeric/timer display | Multiplexed via Port 1 GPIO pins |
+| **BUZ1 (Buzzer)** | Audible alert | Driven via GPIO for exam start/end signals |
+| **D1, D2, D3 (LEDs)** | Status indication (Green / Yellow / Red) | GPIO output pins |
+| **R1, R2 (Pull-ups) + Push Buttons** | Manual control inputs | Interrupt/GPIO pins (EINT / general input) |
 
-- Embedded C programming
-- Keil µVision (compiler/IDE)
-- Proteus (simulation)
-- Flash Magic (firmware flashing)
+---
 
-## Project Workflow
-
-1. **Idle state:** LCD shows current RTC date/time and room temperature.
-2. **Configuration mode (Switch-1 / EINT0):** Invigilator sets the RTC and configures exam duration via keypad.
-3. **Exam start:** RTC logs the start time; countdown timer begins.
-4. **During exam:** LCD shows time, temperature, and remaining duration; 7-segment displays show remaining minutes (00–99).
-5. **Status alerts:**
-   - 🟢 Green LED — more than 10 minutes remaining
-   - 🟡 Yellow LED — final 10 minutes
-   - 🔴 Red LED — final 1 minute
-   - 🔔 Buzzer — sounds when countdown reaches zero
-6. **Pause/Resume (Switch-2 / EINT1):** Pauses and resumes the countdown timer without losing elapsed time.
-7. **Exam end:** RTC logs the end time automatically for administrative records.
-
-## Repository Structure
+## 📂 Project Structure
 
 ```
-Src/
-├── ADC_pro.c        # ADC driver (LM35 temperature reading)
-├── LM35.c            # LM35 sensor handling
-├── TEST_RTC.c        # RTC test routines
-├── delay.c           # Delay utilities
-├── interrupt.c       # EINT0 / EINT1 handlers
-├── kpm_pro.c         # Keypad matrix driver
-├── lcd_pro.c         # LCD driver
-├── seg_pro.c         # 7-segment multiplexing driver
-├── time_dly_seg.c    # Timing/delay logic for segment display
-├── mini_project.c    # Main application logic
-├── defines.h
-├── headers.h
-├── lcd_defines.h
-├── project_defines.h
-└── types.h
+src/
+├── mini_project.c          # Main application entry point
+├── defines.h / types.h     # Global definitions and type declarations
+│
+├── LCD Driver
+│   ├── lcd.h
+│   ├── lcd_def.h
+│   └── lcd_pro.c
+│
+├── Keypad Matrix Driver
+│   ├── kpm.h
+│   ├── kpm_defines.h
+│   └── kpm_pro.c
+│
+├── ADC / Temperature (LM35)
+│   ├── ADC.h
+│   ├── ADC_defines.h
+│   ├── ADC_pro.c
+│   ├── LM35.h
+│   └── LM35.c
+│
+├── Real-Time Clock
+│   ├── TEST_RTC.h
+│   ├── TEST_RTC_defines.h
+│   └── TEST_RTC.c
+│
+├── 7-Segment Display
+│   ├── seg.h
+│   ├── seg_defines.h
+│   ├── seg_pro.c
+│   ├── time_dly_seg.h
+│   └── time_dly_seg.c
+│
+├── Interrupts
+│   ├── interrupt.h
+│   ├── interrupt_defines.h
+│   └── intreputs.c
+│
+├── Timing Utilities
+│   ├── delay.h
+│   └── delay.c
+│
+└── LEDs
+    └── led_defines.h
 ```
 
-## Getting Started
+---
 
-1. Clone the repository:
-   ```
-   git clone https://github.com/ashakimidi2518/Smart-exam-hall-monitoring-and-management-system-.git
-   ```
-2. Open the project in **Keil µVision**.
-3. Build the project and generate the `.hex` file.
-4. Flash to the LPC2148 board using **Flash Magic**, or simulate using **Proteus**.
+## 🛠️ Tools & Technologies
 
-## Notes
+| Tool | Purpose |
+|---|---|
+| **Keil µVision** | Embedded C firmware development, compilation, and debugging |
+| **Proteus ISIS** | Circuit design and real-time simulation |
+| **NXP LPC2148 (ARM7TDMI-S)** | Target microcontroller |
+| **Embedded C** | Firmware language |
 
-Code follows industry-standard embedded programming practices: modular structure, consistent naming conventions, and separation of drivers (ADC, LCD, keypad, segment, RTC) from application logic (`mini_project.c`).
+---
+
+## ⚙️ Peripherals Used
+
+- **GPIO** — LED, buzzer, keypad row/column scanning
+- **ADC** — LM35 temperature reading
+- **RTC** — Real-time exam timing
+- **External Interrupts (EINT)** — Push-button triggered events
+- **Timers** — Delay generation and 7-segment display multiplexing
+
+---
+
+## ▶️ How to Run the Simulation
+
+1. Open the project in **Keil µVision** and build `mini_project.c` to generate the `.hex` file.
+2. Open the Proteus schematic (`.pdsprj`) file.
+3. Load the generated `.hex` file into **U1 (LPC2124/LPC2148)** via its properties dialog.
+4. Run the simulation — the LCD will initialize, the RTC will start ticking, and the keypad/LM35/7-segment/buzzer/LEDs will respond as programmed.
+
+---
+
+## 🚀 Features
+
+- ✅ Real-time exam clock display
+- ✅ Live room temperature monitoring
+- ✅ Keypad-based input for exam control
+- ✅ Visual (LCD + 7-segment + LED) and audible (buzzer) status feedback
+- ✅ Modular, well-commented driver-based firmware architecture
+
+---
+
+## 👤 Author
+
+**Asha Kimidi** — [ashakimidi2518](https://github.com/ashakimidi2518)
+
+---
+
+## 📄 License
+
+This project is open for educational and academic use. Feel free to fork and build upon it.
